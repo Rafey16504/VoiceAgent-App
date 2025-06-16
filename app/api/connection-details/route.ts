@@ -16,42 +16,35 @@ export type ConnectionDetails = {
   participantToken: string;
 };
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const identity = searchParams.get('identity');
+  const roomName = searchParams.get('room');
+
+  if (!identity || !roomName) {
+    return new NextResponse("Missing identity or room name", { status: 400 });
+  }
+
   try {
-    if (LIVEKIT_URL === undefined) {
-      throw new Error("LIVEKIT_URL is not defined");
-    }
-    if (API_KEY === undefined) {
-      throw new Error("LIVEKIT_API_KEY is not defined");
-    }
-    if (API_SECRET === undefined) {
-      throw new Error("LIVEKIT_API_SECRET is not defined");
+    if (!LIVEKIT_URL || !API_KEY || !API_SECRET) {
+      throw new Error("Missing environment variables");
     }
 
-    // Generate participant token
-    const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
-    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
-    const participantToken = await createParticipantToken(
-      { identity: participantIdentity },
-      roomName
-    );
+    const participantToken = await createParticipantToken({ identity }, roomName);
 
-    // Return connection details
     const data: ConnectionDetails = {
       serverUrl: LIVEKIT_URL,
       roomName,
-      participantToken: participantToken,
-      participantName: participantIdentity,
+      participantName: identity,
+      participantToken,
     };
-    const headers = new Headers({
-      "Cache-Control": "no-store",
+
+    return NextResponse.json(data, {
+      headers: { "Cache-Control": "no-store" },
     });
-    return NextResponse.json(data, { headers });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error(error);
-      return new NextResponse(error.message, { status: 500 });
-    }
+    console.error(error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
