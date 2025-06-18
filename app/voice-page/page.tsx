@@ -2,6 +2,7 @@
 
 import { CloseIcon } from "@/components/CloseIcon";
 import { NoAgentNotification } from "@/components/NoAgentNotification";
+import { AvatarVisualizer } from "@/components/avatar/avatarVisualizer";
 import { ChatMessageType } from "@/components/chat/ChatTile";
 import {
   PlaygroundTab,
@@ -20,7 +21,7 @@ import {
   useVoiceAssistant,
 } from "@livekit/components-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Room, RoomEvent } from "livekit-client";
+import { Room, RoomEvent, RemoteAudioTrack  } from "livekit-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -72,9 +73,9 @@ export default function Page() {
   }, [room]);
 
   return (
-    <main data-lk-theme="default" className="h-full grid content-center bg-[var(--lk-bg)]">
+    <main data-lk-theme="default" className="h-screen content-center bg-[var(--lk-bg)] overflow-hidden">
       <RoomContext.Provider value={room}>
-        <div className="lk-room-container max-w-[1024px] w-[90vw] mx-auto max-h-[90vh]">
+        <div className="lk-room-container w-1/2 mx-auto min-h-screen">
           <SimpleVoiceAssistant onConnectButtonClicked={onConnectButtonClicked} />
         </div>
       </RoomContext.Provider>
@@ -139,7 +140,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
             <AgentVisualizer />
             <div className="flex-1 w-full">
               {config.settings.chat && (
-                <PlaygroundTile title="Chat" className="h-full grow basis-1/4 hidden lg:flex">
+                <PlaygroundTile title="Chat" className="h-[400px]">
                   {chatTileContent}
                 </PlaygroundTile>
               )}
@@ -158,7 +159,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
 
 function AgentVisualizer() {
   const { state: agentState, videoTrack, audioTrack } = useVoiceAssistant();
-
+const remoteTrack = (audioTrack?.publication?.track ?? undefined) as RemoteAudioTrack | undefined;
   if (videoTrack) {
     return (
       <div className="h-[512px] w-[512px] rounded-lg overflow-hidden">
@@ -168,14 +169,8 @@ function AgentVisualizer() {
   }
 
   return (
-    <div className="h-[300px] w-full">
-      <BarVisualizer
-        state={agentState}
-        barCount={5}
-        trackRef={audioTrack}
-        className="agent-visualizer"
-        options={{ minHeight: 24 }}
-      />
+    <div className="h-[300px] w-full flex items-center justify-center">
+      <AvatarVisualizer track={remoteTrack} />
     </div>
   );
 }
