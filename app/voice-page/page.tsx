@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { Room, RoomEvent } from 'livekit-client';
+import { CloseIcon } from "@/components/CloseIcon";
+import { NoAgentNotification } from "@/components/NoAgentNotification";
+import { ChatMessageType } from "@/components/chat/ChatTile";
+import {
+  PlaygroundTab,
+  PlaygroundTabbedTile,
+  PlaygroundTile,
+} from "@/components/playground/PlaygroundTile";
+import { useConfig } from "@/hooks/useConfig";
+import { TranscriptionTile } from "@/transcriptions/TranscriptionTile";
 import {
   BarVisualizer,
   DisconnectButton,
@@ -11,11 +18,11 @@ import {
   VideoTrack,
   VoiceAssistantControlBar,
   useVoiceAssistant,
-} from '@livekit/components-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { CloseIcon } from '@/components/CloseIcon';
-import { NoAgentNotification } from '@/components/NoAgentNotification';
-import TranscriptionView from '@/components/TranscriptionView';
+} from "@livekit/components-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Room, RoomEvent } from "livekit-client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -25,27 +32,29 @@ type ConnectionDetails = {
 };
 
 export default function Page() {
+  const [transcripts, setTranscripts] = useState<ChatMessageType[]>([]);
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const name = searchParams.get('name');
-  const roomName = searchParams.get('room');
+  const name = searchParams.get("name");
+  const roomName = searchParams.get("room");
 
   const [room] = useState(new Room());
 
   // Redirect if missing required fields
   useEffect(() => {
     if (!name || !roomName) {
-      router.push('/join');
+      router.push("/join");
     }
   }, [name, roomName, router]);
 
   const onConnectButtonClicked = useCallback(async () => {
     const url = new URL(
-      process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details',
+      process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? "/api/connection-details",
       window.location.origin
     );
-    url.searchParams.set('identity', name || '');
-    url.searchParams.set('room', roomName || '');
+    url.searchParams.set("identity", name || "");
+    url.searchParams.set("room", roomName || "");
 
     const response = await fetch(url.toString());
     const connectionDetailsData: ConnectionDetails = await response.json();
@@ -75,11 +84,31 @@ export default function Page() {
 
 function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
   const { state: agentState } = useVoiceAssistant();
+  const { config } = useConfig();
+  const voiceAssistant = useVoiceAssistant();
+  let mobileTabs: PlaygroundTab[] = [];
+  const chatTileContent = useMemo(() => {
+    if (voiceAssistant.agent) {
+      return (
+        <TranscriptionTile
+          agentAudioTrack={voiceAssistant.audioTrack}
+          accentColor={config.settings.theme_color}
+        />
+      );
+    }
+    return <></>;
+  }, [config.settings.theme_color, voiceAssistant.audioTrack, voiceAssistant.agent]);
 
+  if (config.settings.chat) {
+    mobileTabs.push({
+      title: "Chat",
+      content: chatTileContent,
+    });
+  }
   return (
     <>
       <AnimatePresence mode="wait">
-        {agentState === 'disconnected' ? (
+        {agentState === "disconnected" ? (
           <motion.div
             key="disconnected"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -109,7 +138,11 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
           >
             <AgentVisualizer />
             <div className="flex-1 w-full">
-              <TranscriptionView />
+              {config.settings.chat && (
+                <PlaygroundTile title="Chat" className="h-full grow basis-1/4 hidden lg:flex">
+                  {chatTileContent}
+                </PlaygroundTile>
+              )}
             </div>
             <div className="w-full">
               <ControlBar onConnectButtonClicked={props.onConnectButtonClicked} />
@@ -153,11 +186,11 @@ function ControlBar(props: { onConnectButtonClicked: () => void }) {
   return (
     <div className="relative h-[60px]">
       <AnimatePresence>
-        {agentState === 'disconnected' && (
+        {agentState === "disconnected" && (
           <motion.button
             initial={{ opacity: 0, top: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, top: '-10px' }}
+            exit={{ opacity: 0, top: "-10px" }}
             transition={{ duration: 1, ease: [0.09, 1.04, 0.245, 1.055] }}
             className="uppercase absolute left-1/2 -translate-x-1/2 px-4 py-2 bg-white text-black rounded-md"
             onClick={() => props.onConnectButtonClicked()}
@@ -167,11 +200,11 @@ function ControlBar(props: { onConnectButtonClicked: () => void }) {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {agentState !== 'disconnected' && agentState !== 'connecting' && (
+        {agentState !== "disconnected" && agentState !== "connecting" && (
           <motion.div
-            initial={{ opacity: 0, top: '10px' }}
+            initial={{ opacity: 0, top: "10px" }}
             animate={{ opacity: 1, top: 0 }}
-            exit={{ opacity: 0, top: '-10px' }}
+            exit={{ opacity: 0, top: "-10px" }}
             transition={{ duration: 0.4, ease: [0.09, 1.04, 0.245, 1.055] }}
             className="flex h-8 absolute left-1/2 -translate-x-1/2 justify-center"
           >
@@ -189,6 +222,6 @@ function ControlBar(props: { onConnectButtonClicked: () => void }) {
 function onDeviceFailure(error: Error) {
   console.error(error);
   alert(
-    'Error acquiring camera or microphone permissions. Please make sure you grant the necessary permissions in your browser and reload the tab.'
+    "Error acquiring camera or microphone permissions. Please make sure you grant the necessary permissions in your browser and reload the tab."
   );
 }
