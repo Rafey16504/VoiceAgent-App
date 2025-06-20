@@ -1,8 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
+
 import { CloseIcon } from "@/components/CloseIcon";
 import { NoAgentNotification } from "@/components/NoAgentNotification";
-import { AvatarVisualizer } from "@/components/avatar/avatarVisualizer";
+import { SplineAvatar } from "@/components/avatar/avatarVisualizer";
 import { ChatMessageType } from "@/components/chat/ChatTile";
 import {
   PlaygroundTab,
@@ -23,7 +26,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Room, RoomEvent, RemoteAudioTrack  } from "livekit-client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -170,7 +173,7 @@ const remoteTrack = (audioTrack?.publication?.track ?? undefined) as RemoteAudio
 
   return (
     <div className="h-[300px] w-full flex items-center justify-center">
-      <AvatarVisualizer track={remoteTrack} />
+      <SplineAvatar audioTrack={remoteTrack} />
     </div>
   );
 }

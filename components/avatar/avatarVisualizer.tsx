@@ -1,39 +1,89 @@
-// components/AvatarVisualizer.tsx
-'use client';
-import { RemoteAudioTrack } from "livekit-client";
-import { useTrackVolume } from "@/hooks/useTrackVolume";
+// components/SplineAvatar.tsx or inline in the same file
+import React, { useEffect, useRef } from "react";
+const Spline = React.lazy(() => import("@splinetool/react-spline"));
 
-export function AvatarVisualizer({ track }: { track?: RemoteAudioTrack }) {
-  const volume = useTrackVolume(track);
-  const mouthOpen = Math.min(Math.max((volume - 20) / 60, 0), 1); // Normalize to 0–1
+import type { Application, SPEObject } from "@splinetool/runtime";
+import { RemoteAudioTrack } from "livekit-client";
+
+
+interface SplineAvatarProps {
+  audioTrack?: RemoteAudioTrack; // Agent's audio (NOT mic input)
+}
+
+export function SplineAvatar({ audioTrack }: SplineAvatarProps) {
+  const splineRef = useRef<Application | null>(null);
+  const mouthRef = useRef<SPEObject | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+
+  useEffect(() => {
+    if (!audioTrack || !audioTrack.mediaStreamTrack) return;
+
+    const context = new AudioContext();
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 64;
+    analyserRef.current = analyser;
+
+    const stream = new MediaStream([audioTrack.mediaStreamTrack]);
+    const source = context.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let lastEmit = 0;
+    const emitInterval = 150; // 150ms between events
+
+    let toggle = false;
+
+const loop = () => {
+  requestAnimationFrame(loop);
+
+  if (!splineRef.current || !mouthRef.current) return;
+
+  analyser.getByteFrequencyData(dataArray);
+  const avg = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+  const volume = avg / 255;
+
+  const now = performance.now();
+  const isSpeaking = volume > 0.05;
+
+  if (isSpeaking && now - lastEmit > emitInterval) {
+    if (toggle) {
+      splineRef.current.emitEvent("mouseHover", mouthRef.current.uuid);
+    } else {
+      // Replace with the actual name of your dummy reset object
+      const dummy = splineRef.current.findObjectByName("resetDummy") as SPEObject;
+      if (dummy) {
+        splineRef.current.emitEvent("mouseHover", dummy.uuid);
+      }
+    }
+    toggle = !toggle;
+    lastEmit = now;
+  }
+};
+
+
+    loop();
+
+    return () => {
+      source.disconnect();
+      analyser.disconnect();
+      context.close();
+    };
+  }, [audioTrack]);
+
+  const onLoad = (spline: Application) => {
+    splineRef.current = spline;
+    const mouth = spline.findObjectByName("mouth") as SPEObject;
+    if (mouth) {
+      mouthRef.current = mouth;
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-48 h-48 bg-gray-200 rounded-t-full relative flex items-center justify-center shadow-lg">
-        {/* Eyebrows */}
-        {/* <div className="absolute top-1/4 right-1/4 w-7 h-1 bg-black rounded-ss-full rounded-se-full" 
-        style={{
-            // width: `${mouthOpen * 5 + 20}px `,
-            height: `${mouthOpen * -2 + 4}px`,
-          }}/>
-        <div className="absolute top-1/4 left-1/4 w-7 h-1 bg-black rounded-ss-full rounded-se-full" 
-        style={{
-            // width: `${mouthOpen * 5 + 20}px `,
-            height: `${mouthOpen * -2 + 4}px`,
-          }}/> */}
-          {/* Eyes */}
-        <div className="absolute top-1/3 left-1/4 w-4 h-4 bg-black rounded-full" />
-        <div className="absolute top-1/3 right-1/4 w-4 h-4 bg-black rounded-full" />
-        
-        {/* Mouth */}
-        <div
-          className="absolute bottom-[30%] bg-black rounded-b-3xl transition-all duration-100"
-          style={{
-            width: `${mouthOpen * -10 + 15}px `,
-            height: `${mouthOpen * 30 + 5}px`,
-          }}
-        />
-      </div>
+    <div className="h-[300px] w-[300px]">
+      <Spline
+        scene="https://prod.spline.design/wiqpRSMufu7cBUOc/scene.splinecode"
+        onLoad={onLoad}
+      />
     </div>
   );
 }
