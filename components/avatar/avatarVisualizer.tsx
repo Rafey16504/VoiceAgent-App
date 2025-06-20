@@ -84,6 +84,9 @@ const loop = () => {
         scene="https://prod.spline.design/wiqpRSMufu7cBUOc/scene.splinecode"
         onLoad={onLoad}
       />
+      <p className='absolute top-60 right-80 bg-[var(--lk-bg)] w-56 h-12'>
+
+          </p>
     </div>
   );
 }
