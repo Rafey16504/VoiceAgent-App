@@ -1,21 +1,15 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-
 import { CloseIcon } from "@/components/CloseIcon";
 import { NoAgentNotification } from "@/components/NoAgentNotification";
 import { SplineAvatar } from "@/components/avatar/avatarVisualizer";
-import { ChatMessageType } from "@/components/chat/ChatTile";
 import {
   PlaygroundTab,
-  PlaygroundTabbedTile,
   PlaygroundTile,
 } from "@/components/playground/PlaygroundTile";
 import { useConfig } from "@/hooks/useConfig";
 import { TranscriptionTile } from "@/transcriptions/TranscriptionTile";
 import {
-  BarVisualizer,
   DisconnectButton,
   RoomAudioRenderer,
   RoomContext,
@@ -26,7 +20,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { Room, RoomEvent, RemoteAudioTrack  } from "livekit-client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ConnectionDetails = {
   serverUrl: string;
@@ -36,7 +30,6 @@ type ConnectionDetails = {
 };
 
 export default function Page() {
-  const [transcripts, setTranscripts] = useState<ChatMessageType[]>([]);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,9 +69,9 @@ export default function Page() {
   }, [room]);
 
   return (
-    <main data-lk-theme="default" className="h-screen content-center bg-[var(--lk-bg)] overflow-hidden">
+    <main data-lk-theme="default" className="max-h-screen max-w-screen content-center bg-[var(--lk-bg)] overflow-hidden">
       <RoomContext.Provider value={room}>
-        <div className="lk-room-container w-1/2 mx-auto min-h-screen">
+        <div className="h-screen w-screen">
           <SimpleVoiceAssistant onConnectButtonClicked={onConnectButtonClicked} />
         </div>
       </RoomContext.Provider>
@@ -90,7 +83,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
   const { state: agentState } = useVoiceAssistant();
   const { config } = useConfig();
   const voiceAssistant = useVoiceAssistant();
-  let mobileTabs: PlaygroundTab[] = [];
+  const mobileTabs: PlaygroundTab[] = [];
   const chatTileContent = useMemo(() => {
     if (voiceAssistant.agent) {
       return (
@@ -110,7 +103,7 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
     });
   }
   return (
-    <>
+    <div className="h-screen">
       <AnimatePresence mode="wait">
         {agentState === "disconnected" ? (
           <motion.div
@@ -138,30 +131,36 @@ function SimpleVoiceAssistant(props: { onConnectButtonClicked: () => void }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: [0.09, 1.04, 0.245, 1.055] }}
-            className="flex flex-col items-center gap-4 h-full"
+            className="gap-4 h-full flex "
           >
-            <AgentVisualizer />
-            <div className="flex-1 w-full">
+            <div className="w-screen flex items-center justify-center p-10">
+              <div>
+
+ <AgentVisualizer />
+              </div>
+            
+             <div className="w-1/2">
               {config.settings.chat && (
-                <PlaygroundTile title="Chat" className="h-[400px]">
+                <PlaygroundTile title="Chat" className="h-[500px]">
                   {chatTileContent}
                 </PlaygroundTile>
               )}
             </div>
-            <div className="w-full">
-              <ControlBar onConnectButtonClicked={props.onConnectButtonClicked} />
             </div>
+            {/* <div className="w-screen">
+              <ControlBar onConnectButtonClicked={props.onConnectButtonClicked} />
+            </div> */}
             <RoomAudioRenderer />
             <NoAgentNotification state={agentState} />
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
 
 function AgentVisualizer() {
-  const { state: agentState, videoTrack, audioTrack } = useVoiceAssistant();
+  const { videoTrack, audioTrack } = useVoiceAssistant();
 const remoteTrack = (audioTrack?.publication?.track ?? undefined) as RemoteAudioTrack | undefined;
   if (videoTrack) {
     return (
@@ -172,7 +171,7 @@ const remoteTrack = (audioTrack?.publication?.track ?? undefined) as RemoteAudio
   }
 
   return (
-    <div className="h-[300px] w-full flex items-center justify-center">
+    <div className="h-[300px] w-[600px] flex items-center justify-center">
       <SplineAvatar audioTrack={remoteTrack} />
     </div>
   );

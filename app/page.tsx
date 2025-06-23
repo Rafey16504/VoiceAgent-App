@@ -20,7 +20,7 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="h-screen flex flex-col justify-center items-center">
+    <main className="h-screen flex flex-col justify-center items-center bg-zinc-200">
       <Spline scene="https://prod.spline.design/WEyEP1ytN7iPp1o0/scene.splinecode" className="absolute inset-0"/>
       <p className="h-96 text-3xl font-bold relative self-center">Join a Room with</p>
       <div  className="p-2 rounded w-128 relative flex space-x-24">
