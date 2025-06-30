@@ -1,10 +1,8 @@
-// components/SplineAvatar.tsx or inline in the same file
 import React, { useEffect, useRef } from "react";
 const Spline = React.lazy(() => import("@splinetool/react-spline"));
 
 import type { Application, SPEObject } from "@splinetool/runtime";
 import { RemoteAudioTrack } from "livekit-client";
-
 
 interface SplineAvatarProps {
   audioTrack?: RemoteAudioTrack; // Agent's audio (NOT mic input)
@@ -13,6 +11,8 @@ interface SplineAvatarProps {
 export function SplineAvatar({ audioTrack }: SplineAvatarProps) {
   const splineRef = useRef<Application | null>(null);
   const mouthRef = useRef<SPEObject | null>(null);
+  const eyebrowLeftRef = useRef<SPEObject | null>(null);
+  const eyebrowRightRef = useRef<SPEObject | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
   useEffect(() => {
@@ -33,33 +33,37 @@ export function SplineAvatar({ audioTrack }: SplineAvatarProps) {
 
     let toggle = false;
 
-const loop = () => {
-  requestAnimationFrame(loop);
+    const loop = () => {
+      requestAnimationFrame(loop);
 
-  if (!splineRef.current || !mouthRef.current) return;
+      if (!splineRef.current || !mouthRef.current) return;
 
-  analyser.getByteFrequencyData(dataArray);
-  const avg = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
-  const volume = avg / 255;
+      analyser.getByteFrequencyData(dataArray);
+      const avg = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+      const volume = avg / 255;
 
-  const now = performance.now();
-  const isSpeaking = volume > 0.05;
+      const now = performance.now();
+      const isSpeaking = volume > 0.05;
 
-  if (isSpeaking && now - lastEmit > emitInterval) {
-    if (toggle) {
-      splineRef.current.emitEvent("mouseHover", mouthRef.current.uuid);
-    } else {
-      // Replace with the actual name of your dummy reset object
-      const dummy = splineRef.current.findObjectByName("resetDummy") as SPEObject;
-      if (dummy) {
-        splineRef.current.emitEvent("mouseHover", dummy.uuid);
+      if (isSpeaking && now - lastEmit > emitInterval) {
+        if (toggle) {
+          splineRef.current.emitEvent("mouseHover", mouthRef.current.uuid);
+          if (eyebrowLeftRef.current) {
+            splineRef.current.emitEvent("mouseHover", eyebrowLeftRef.current.uuid);
+          }
+          if (eyebrowRightRef.current) {
+            splineRef.current.emitEvent("mouseHover", eyebrowRightRef.current.uuid);
+          }
+        } else {
+          const dummy = splineRef.current.findObjectByName("resetDummy") as SPEObject;
+          if (dummy) {
+            splineRef.current.emitEvent("mouseHover", dummy.uuid);
+          }
+        }
+        toggle = !toggle;
+        lastEmit = now;
       }
-    }
-    toggle = !toggle;
-    lastEmit = now;
-  }
-};
-
+    };
 
     loop();
 
@@ -72,21 +76,18 @@ const loop = () => {
 
   const onLoad = (spline: Application) => {
     splineRef.current = spline;
-    const mouth = spline.findObjectByName("mouth") as SPEObject;
-    if (mouth) {
-      mouthRef.current = mouth;
-    }
+    mouthRef.current = spline.findObjectByName("mouth") as SPEObject;
+    eyebrowLeftRef.current = spline.findObjectByName("eyebrow_left") as SPEObject;
+    eyebrowRightRef.current = spline.findObjectByName("eyebrow_right") as SPEObject;
   };
 
   return (
-    <div className="h-[500px] w-[500px]">
+    <div className="h-[700px] w-[700px] relative ">
       <Spline
-        scene="https://prod.spline.design/wiqpRSMufu7cBUOc/scene.splinecode"
+        scene="https://prod.spline.design/MbMuwIa5qpEjjWOd/scene.splinecode" 
         onLoad={onLoad}
       />
-      <p className='absolute bottom-64 left-[28%] bg-[var(--lk-bg)] w-56 h-12'>
-
-          </p>
+      <p className="absolute bottom-3 left-[60%] bg-[var(--lk-bg)] w-56 h-12"></p>
     </div>
   );
 }
